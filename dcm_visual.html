@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Direction Cosine Matrix — DCM Visual</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #ffffff;
+    color: #000000;
+    font-family: Georgia, 'Times New Roman', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .logo-wordmark {
+    font-family: Georgia, serif;
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: #415a77;
+    margin-bottom: 12px;
+  }
+
+  h2 {
+    font-family: Georgia, serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: #000000;
+  }
+
+  h2 span { color: #1a4da2; }
+
+  .subtitle {
+    font-family: Georgia, serif;
+    font-size: 13px;
+    color: #415a77;
+    margin-top: 8px;
+    font-style: italic;
+  }
+
+  .divider {
+    width: 48px; height: 3px;
+    background: linear-gradient(90deg, #e07a5f, #1a4da2, #81b29a);
+    margin: 14px auto 0;
+    border-radius: 2px;
+  }
+
+  /* Top demo + 3 cards layout */
+  .main-wrap {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* Interactive rotation demo */
+  .demo-shell {
+    background: #1a4da2;
+    border-radius: 14px;
+    padding: 3px;
+  }
+
+  .demo-inner {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 24px 28px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .demo-title {
+    font-family: Georgia, serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #1a4da2;
+    font-weight: 700;
+  }
+
+  .demo-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .canvas-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  canvas#dcmCanvas {
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    display: block;
+  }
+
+  .controls-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 200px;
+  }
+
+  .slider-group label {
+    font-family: Georgia, serif;
+    font-size: 12px;
+    color: #333;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .slider-group input[type=range] {
+    width: 100%;
+    accent-color: #1a4da2;
+    cursor: pointer;
+  }
+
+  .matrix-display {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    background: #f7f8fa;
+    border: 1px solid #dde3ee;
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: #1a1a1a;
+    line-height: 1.8;
+    min-width: 200px;
+  }
+
+  .matrix-display .mlabel {
+    font-family: Georgia, serif;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #415a77;
+    margin-bottom: 6px;
+  }
+
+  .matrix-display .mrow { display: flex; gap: 8px; }
+  .matrix-display .mcell {
+    width: 46px;
+    text-align: right;
+    font-size: 11px;
+  }
+
+  .mcell.pos { color: #1a4da2; }
+  .mcell.neg { color: #e07a5f; }
+  .mcell.nearzero { color: #81b29a; }
+
+  /* Norm indicator */
+  .norm-badge {
+    font-family: Georgia, serif;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+    display: inline-block;
+  }
+
+  .norm-ok { background: rgba(129,178,154,0.18); color: #2e7d54; border: 1px solid #81b29a; }
+  .norm-drift { background: rgba(224,122,95,0.15); color: #b94a28; border: 1px solid #e07a5f; }
+
+  /* Bottom 3 property cards */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+    max-width: 900px;
+  }
+
+  @media (max-width: 700px) {
+    .grid { grid-template-columns: 1fr; }
+    .demo-layout { flex-direction: column; align-items: center; }
+  }
+
+  .card-shell {
+    background: #415a77;
+    border-radius: 14px;
+    padding: 3px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.25s;
+  }
+
+  .card-shell:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 36px rgba(65,90,119,0.28);
+  }
+
+  .card-inner {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px 18px 16px;
+    height: 100%;
+  }
+
+  .card-tag {
+    font-family: Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: #415a77;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .card-title {
+    font-family: Georgia, serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.25;
+  }
+
+  .card-desc {
+    font-family: Georgia, serif;
+    font-size: 12.5px;
+    line-height: 1.68;
+    color: #333333;
+  }
+
+  .reveal-hint {
+    font-family: Georgia, serif;
+    font-size: 10px;
+    color: #415a77;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-style: italic;
+  }
+
+  .reveal-hint::before { content: '▶'; font-size: 7px; font-style: normal; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.68);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .modal-overlay.active { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: #ffffff;
+    border-radius: 18px;
+    width: 92%;
+    max-width: 620px;
+    padding: 30px 28px 24px;
+    position: relative;
+    transform: scale(0.94) translateY(12px);
+    transition: transform 0.3s;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+  }
+
+  .modal-overlay.active .modal { transform: scale(1) translateY(0); }
+
+  .modal-top-bar {
+    height: 5px;
+    border-radius: 18px 18px 0 0;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+  }
+
+  .modal-tag {
+    font-family: Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 12px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  .modal-title {
+    font-family: Georgia, serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .modal-desc {
+    font-family: Georgia, serif;
+    font-size: 13px;
+    line-height: 1.72;
+    color: #333333;
+    margin-bottom: 20px;
+  }
+
+  .modal-svg-wrap {
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #ddd;
+  }
+
+  .modal-svg-wrap svg { width: 100%; height: auto; display: block; }
+
+  .close-btn {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: #f0f0f0;
+    border: none;
+    color: #333;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .close-btn:hover { background: #ddd; }
+
+  /* animations */
+  .draw-in {
+    stroke-dasharray: 500;
+    stroke-dashoffset: 500;
+    animation: drawLine 1.4s ease forwards 0.2s;
+  }
+  @keyframes drawLine { to { stroke-dashoffset: 0; } }
+
+  .fade-in { animation: fadeIn 0.8s ease forwards 0.4s; opacity: 0; }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  .pulse { animation: pulseAnim 2s ease-in-out infinite; }
+  @keyframes pulseAnim { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* warning strip */
+  .warning-strip {
+    margin-top: 4px;
+    width: 100%;
+    max-width: 900px;
+    background: #3d405b;
+    border-radius: 10px;
+    padding: 3px;
+  }
+
+  .warning-inner {
+    background: #fff;
+    border-radius: 8px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .warning-icon { font-size: 22px; flex-shrink: 0; }
+
+  .warning-text {
+    font-family: Georgia, serif;
+    font-size: 13px;
+    color: #1a1a1a;
+    line-height: 1.6;
+  }
+
+  .warning-text strong { color: #e07a5f; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-wordmark">Madras Institute of Technology &nbsp;·&nbsp; Unit IV — Onboard Estimate Systems</div>
+  <h2>Direction <span>Cosine</span> Matrix</h2>
+  <p class="subtitle">Rotate the frame. Watch what the 9 numbers mean — and where they break.</p>
+  <div class="divider"></div>
+</div>
+
+<div class="main-wrap">
+
+  <!-- INTERACTIVE DEMO -->
+  <div class="demo-shell">
+    <div class="demo-inner">
+      <div class="demo-title">Live Frame Rotation — Drag the sliders to rotate the body frame</div>
+      <div class="demo-layout">
+        <div class="canvas-wrap">
+          <canvas id="dcmCanvas" width="340" height="280"></canvas>
+        </div>
+        <div class="controls-wrap">
+          <div class="slider-group">
+            <label>Yaw (ψ) — Z axis <span id="yawVal">0°</span></label>
+            <input type="range" id="yawSlider" min="-180" max="180" value="0">
+          </div>
+          <div class="slider-group">
+            <label>Pitch (θ) — Y axis <span id="pitchVal">0°</span></label>
+            <input type="range" id="pitchSlider" min="-89" max="89" value="0">
+          </div>
+          <div class="slider-group">
+            <label>Roll (φ) — X axis <span id="rollVal">0°</span></label>
+            <input type="range" id="rollSlider" min="-180" max="180" value="0">
+          </div>
+          <div class="matrix-display">
+            <div class="mlabel">R (body → reference)</div>
+            <div id="matrixRows"></div>
+            <div style="margin-top:8px;">
+              <span style="font-family:Georgia,serif;font-size:10px;color:#415a77;">RᵀR = I check: </span>
+              <span class="norm-badge norm-ok" id="normBadge">✓ Orthogonal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 property cards -->
+  <div class="grid">
+
+    <div class="card-shell" onclick="openModal('cols')">
+      <div class="card-inner">
+        <div class="card-tag">Property 01</div>
+        <div class="card-title" style="color:#1a4da2;">Columns = Body Axes in Reference Frame</div>
+        <div class="card-desc">Each column of R is one body frame axis expressed in reference frame coordinates. Not abstract numbers — physical directions.</div>
+        <div class="reveal-hint">Click to reveal diagram</div>
+      </div>
+    </div>
+
+    <div class="card-shell" onclick="openModal('ortho')">
+      <div class="card-inner">
+        <div class="card-tag">Property 02</div>
+        <div class="card-title" style="color:#e07a5f;">Orthogonality Drift Over Time</div>
+        <div class="card-desc">Integrating Ṙ = R[ω×] in floating point slowly violates RᵀR = I. The matrix drifts. The attitude becomes physically meaningless.</div>
+        <div class="reveal-hint">Click to reveal diagram</div>
+      </div>
+    </div>
+
+    <div class="card-shell" onclick="openModal('redundancy')">
+      <div class="card-inner">
+        <div class="card-tag">Property 03</div>
+        <div class="card-title" style="color:#81b29a;">9 Numbers, 3 Degrees of Freedom</div>
+        <div class="card-desc">Only 3 of the 9 DCM elements are free. The other 6 are locked by orthogonality and det(R) = +1. That redundancy is both a feature and a cost.</div>
+        <div class="reveal-hint">Click to reveal diagram</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Warning strip -->
+  <div class="warning-strip">
+    <div class="warning-inner">
+      <div class="warning-icon">⚠️</div>
+      <div class="warning-text">
+        <strong>The integration trap.</strong> DCM is the truth standard — but integrating it directly in onboard software causes slow orthogonality drift. Without periodic SVD re-orthogonalisation, RᵀR ≠ I and your attitude solution silently becomes <strong>physically invalid</strong>. This is why quaternions propagate the state, and DCM is used only for frame transforms.
+      </div>
+    </div>
+  </div>
+
+</div><!-- end main-wrap -->
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modalBox">
+    <div class="modal-top-bar" id="modalBar"></div>
+    <button class="close-btn" onclick="closeModal(null,true)">✕</button>
+    <div class="modal-tag" id="modalTag"></div>
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-desc" id="modalDesc"></div>
+    <div class="modal-svg-wrap" id="modalSvg"></div>
+  </div>
+</div>
+
+<script>
+// ─── Modal data ───────────────────────────────────────────────
+const cards = {
+  cols: {
+    tag: 'Property 01 — Columns',
+    tagBg: '#1a4da2',
+    barColor: '#1a4da2',
+    title: 'Columns = Body Axes in Reference Frame',
+    desc: 'Column 1 is the body X-axis expressed in reference coordinates. Column 2 is body Y. Column 3 is body Z. When the satellite rotates, these columns rotate with it. The entire 3×3 matrix is just three direction vectors stacked side by side.',
+    svg: `<svg viewBox="0 0 560 300" xmlns="http://www.w3.org/2000/svg">
+      <rect width="560" height="300" fill="#f4f1de"/>
+      <!-- reference frame axes -->
+      <line x1="100" y1="200" x2="100" y2="60" stroke="#415a77" stroke-width="2" class="draw-in"/>
+      <polygon points="100,56 95,72 105,72" fill="#415a77"/>
+      <text x="106" y="66" fill="#415a77" font-size="11" font-family="Georgia,serif">Z_ref</text>
+      <line x1="100" y1="200" x2="240" y2="200" stroke="#415a77" stroke-width="2" class="draw-in"/>
+      <polygon points="243,200 227,195 227,205" fill="#415a77"/>
+      <text x="246" y="204" fill="#415a77" font-size="11" font-family="Georgia,serif">X_ref</text>
+      <line x1="100" y1="200" x2="50" y2="240" stroke="#415a77" stroke-width="2" class="draw-in"/>
+      <polygon points="47,243 58,230 47,232" fill="#415a77"/>
+      <text x="28" y="254" fill="#415a77" font-size="11" font-family="Georgia,serif">Y_ref</text>
+      <text x="60" y="42" fill="#415a77" font-size="11" font-family="Georgia,serif" font-style="italic">Reference Frame</text>
+
+      <!-- body frame axes — rotated -->
+      <line x1="280" y1="170" x2="320" y2="80" stroke="#e07a5f" stroke-width="2.5" class="draw-in"/>
+      <polygon points="322,76 311,91 320,85" fill="#e07a5f"/>
+      <text x="326" y="82" fill="#e07a5f" font-size="11" font-family="Georgia,serif">x_b</text>
+      <line x1="280" y1="170" x2="390" y2="155" stroke="#81b29a" stroke-width="2.5" class="draw-in"/>
+      <polygon points="394,154 378,150 380,160" fill="#81b29a"/>
+      <text x="396" y="159" fill="#81b29a" font-size="11" font-family="Georgia,serif">y_b</text>
+      <line x1="280" y1="170" x2="260" y2="70" stroke="#f2cc8f" stroke-width="2.5" class="draw-in"/>
+      <polygon points="259,66 253,80 266,79" fill="#f2cc8f"/>
+      <text x="238" y="66" fill="#c8a84b" font-size="11" font-family="Georgia,serif">z_b</text>
+      <text x="248" y="200" fill="#3d405b" font-size="11" font-family="Georgia,serif" font-style="italic">Body Frame (rotated)</text>
+
+      <!-- annotation: matrix columns -->
+      <rect x="390" y="60" width="155" height="130" rx="6" fill="rgba(26,77,162,0.06)" stroke="#1a4da2" stroke-width="1.2"/>
+      <text x="400" y="80" fill="#1a4da2" font-size="10" font-family="Courier New,monospace" font-weight="700">R = [ c₁ | c₂ | c₃ ]</text>
+      <text x="400" y="100" fill="#e07a5f" font-size="10" font-family="Courier New,monospace">c₁ = x_b in ref coords</text>
+      <text x="400" y="118" fill="#81b29a" font-size="10" font-family="Courier New,monospace">c₂ = y_b in ref coords</text>
+      <text x="400" y="136" fill="#c8a84b" font-size="10" font-family="Courier New,monospace">c₃ = z_b in ref coords</text>
+      <text x="400" y="160" fill="#415a77" font-size="10" font-family="Georgia,serif">3 columns = 3 body axes</text>
+      <text x="400" y="176" fill="#415a77" font-size="10" font-family="Georgia,serif">expressed in reference</text>
+
+      <!-- dot connecting x_b arrow to matrix box -->
+      <line x1="326" y1="82" x2="388" y2="95" stroke="#e07a5f" stroke-width="1" stroke-dasharray="4,3" opacity="0.6" class="draw-in"/>
+      <line x1="394" y1="154" x2="390" y2="118" stroke="#81b29a" stroke-width="1" stroke-dasharray="4,3" opacity="0.6" class="draw-in"/>
+    </svg>`
+  },
+  ortho: {
+    tag: 'Property 02 — Drift',
+    tagBg: '#e07a5f',
+    barColor: '#e07a5f',
+    title: 'Orthogonality Drift Over Time',
+    desc: 'Every integration step in floating point introduces rounding error. Individually tiny. Cumulatively fatal. After enough timesteps, RᵀR is no longer the identity matrix — it has grown ghost off-diagonal terms. The columns are no longer unit vectors. The rotation the matrix represents is no longer physically valid.',
+    svg: `<svg viewBox="0 0 560 300" xmlns="http://www.w3.org/2000/svg">
+      <rect width="560" height="300" fill="#f4f1de"/>
+      <!-- time axis -->
+      <line x1="50" y1="240" x2="520" y2="240" stroke="#415a77" stroke-width="1.5"/>
+      <polygon points="523,240 509,235 509,245" fill="#415a77"/>
+      <text x="525" y="244" fill="#415a77" font-size="11" font-family="Georgia,serif">t</text>
+      <!-- ideal horizontal line at 0 error -->
+      <line x1="50" y1="180" x2="520" y2="180" stroke="#81b29a" stroke-width="1.5" stroke-dasharray="6,4"/>
+      <text x="52" y="175" fill="#81b29a" font-size="10" font-family="Georgia,serif">RᵀR = I  (ideal)</text>
+      <!-- drifting error curve -->
+      <path d="M 50 180 C 100 178, 160 175, 220 165 C 280 150, 340 130, 400 100 C 440 80, 480 60, 510 42"
+        fill="none" stroke="#e07a5f" stroke-width="2.5" class="draw-in"/>
+      <!-- SVD correction spikes back to ideal -->
+      <line x1="230" y1="163" x2="230" y2="180" stroke="#1a4da2" stroke-width="2.5" class="draw-in"/>
+      <polygon points="230,182 225,170 235,170" fill="#1a4da2"/>
+      <text x="190" y="205" fill="#1a4da2" font-size="10" font-family="Georgia,serif">SVD re-orthog.</text>
+
+      <line x1="350" y1="127" x2="350" y2="180" stroke="#1a4da2" stroke-width="2.5" class="draw-in"/>
+      <polygon points="350,182 345,170 355,170" fill="#1a4da2"/>
+      <text x="316" y="205" fill="#1a4da2" font-size="10" font-family="Georgia,serif">SVD re-orthog.</text>
+
+      <!-- danger zone above the curve after 400 -->
+      <rect x="400" y="40" width="115" height="200" fill="rgba(224,122,95,0.08)" stroke="#e07a5f" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="406" y="58" fill="#e07a5f" font-size="10" font-family="Georgia,serif">Drift zone</text>
+      <text x="406" y="72" fill="#e07a5f" font-size="10" font-family="Georgia,serif">(invalid R)</text>
+
+      <!-- y-axis label -->
+      <text x="10" y="185" fill="#415a77" font-size="10" font-family="Georgia,serif" transform="rotate(-90,20,180)">‖RᵀR − I‖</text>
+
+      <!-- annotation box -->
+      <rect x="52" y="52" width="160" height="80" rx="6" fill="rgba(61,64,91,0.06)" stroke="#3d405b" stroke-width="1"/>
+      <text x="62" y="72" fill="#3d405b" font-size="10" font-family="Georgia,serif">Each float op adds</text>
+      <text x="62" y="88" fill="#e07a5f" font-size="10" font-family="Georgia,serif" font-weight="700">~10⁻¹⁶ error</text>
+      <text x="62" y="104" fill="#3d405b" font-size="10" font-family="Georgia,serif">After 10⁶ steps:</text>
+      <text x="62" y="120" fill="#e07a5f" font-size="10" font-family="Georgia,serif" font-weight="700">~10⁻¹⁰ drift — visible</text>
+    </svg>`
+  },
+  redundancy: {
+    tag: 'Property 03 — Redundancy',
+    tagBg: '#81b29a',
+    barColor: '#81b29a',
+    title: '9 Numbers, 3 Degrees of Freedom',
+    desc: '3D rotation has exactly 3 degrees of freedom — yaw, pitch, roll. DCM uses 9 numbers to represent them. The remaining 6 are not free choices: 3 come from column unit-length constraints, 3 from mutual orthogonality. det(R) = +1 eliminates reflections. Every one of those 6 constraints is an equation that floating-point integration slowly violates.',
+    svg: `<svg viewBox="0 0 560 300" xmlns="http://www.w3.org/2000/svg">
+      <rect width="560" height="300" fill="#f4f1de"/>
+      <!-- 3x3 matrix grid -->
+      <g transform="translate(60,40)">
+        <!-- background -->
+        <rect width="240" height="210" rx="8" fill="rgba(129,178,154,0.08)" stroke="#81b29a" stroke-width="1.5"/>
+        <!-- brackets -->
+        <text x="-12" y="115" fill="#3d405b" font-size="36" font-family="Georgia,serif">[</text>
+        <text x="242" y="115" fill="#3d405b" font-size="36" font-family="Georgia,serif">]</text>
+        <!-- 9 cells -->
+        <!-- row 0 -->
+        <rect x="12" y="16" width="60" height="52" rx="4" fill="rgba(26,77,162,0.14)" stroke="#1a4da2" stroke-width="1.2"/>
+        <text x="42" y="46" fill="#1a4da2" font-size="12" font-family="Courier New,monospace" text-anchor="middle">r₁₁</text>
+        <text x="42" y="60" fill="#1a4da2" font-size="9" font-family="Georgia,serif" text-anchor="middle">FREE</text>
+
+        <rect x="90" y="16" width="60" height="52" rx="4" fill="rgba(26,77,162,0.14)" stroke="#1a4da2" stroke-width="1.2"/>
+        <text x="120" y="46" fill="#1a4da2" font-size="12" font-family="Courier New,monospace" text-anchor="middle">r₁₂</text>
+        <text x="120" y="60" fill="#1a4da2" font-size="9" font-family="Georgia,serif" text-anchor="middle">FREE</text>
+
+        <rect x="168" y="16" width="60" height="52" rx="4" fill="rgba(26,77,162,0.14)" stroke="#1a4da2" stroke-width="1.2"/>
+        <text x="198" y="46" fill="#1a4da2" font-size="12" font-family="Courier New,monospace" text-anchor="middle">r₁₃</text>
+        <text x="198" y="60" fill="#1a4da2" font-size="9" font-family="Georgia,serif" text-anchor="middle">FREE</text>
+
+        <!-- row 1 -->
+        <rect x="12" y="80" width="60" height="52" rx="4" fill="rgba(224,122,95,0.12)" stroke="#e07a5f" stroke-width="1.2"/>
+        <text x="42" y="110" fill="#e07a5f" font-size="12" font-family="Courier New,monospace" text-anchor="middle">r₂₁</text>
+        <text x="42" y="124" fill="#e07a5f" font-size="9" font-family="Georgia,serif" text-anchor="middle">LOCKED</text>
+
+        <rect x="90" y="80" width="60" height="52" rx="4" fill="rgba(224,122,95,0.12)" stroke="#e07a5f" stroke-width="1.2"/>
+        <text x="120" y="110" fill="#e07a5f" font-size="12" font-family="Courier New,monospace" text-anchor="middle">r₂₂</text>
+        <text x="120" y="124" fill="#e07a5f" font-size="9" font-family="Georgia,serif" text-anchor="middle">LOCKED</text>
+
+        <rect x="168" y="80" width="60" height="52" rx="4" fill="rgba(224,122,95,0.12)" stroke="#e07a5f" stroke-width="1.2"/>
+        <text x="198" y="110" fill="#e07a5f" font-size="12" font-family="Courier New,monospace" text-anchor="middle">r₂₃</text>
+        <text x="198" y="124" fill="#e07a5f" font-size="9" font-family="Georgia,serif" text-anchor="middle">LOCKED</text>
+
+        <!-- row 2 -->
+        <rect x="12" y="144" width="60" height="52" rx="4" fill="rgba(224,122,95,0.12)" stroke="#e07a5f" stroke-width="1.2"/>
+        <text x="42" y="174" fill="#e07a5f" font-size="12" font-family="Courier New,monospace" text-anchor="middle">r₃₁</text>
+        <text x="42" y="188" fill="#e07a5f" font-size="9" font-family="Georgia,serif" text-anchor="middle">LOCKED</text>
+
+        <rect x="90" y="144" width="60" height="52" rx="4" fill="rgba(224,122,95,0.12)" stroke="#e07a5f" stroke-width="1.2"/>
+        <text x="120" y="174" fill="#e07a5f" font-size="12" font-family="Courier New,monospace" text-anchor="middle">r₃₂</text>
+        <text x="120" y="188" fill="#e07a5f" font-size="9" font-family="Georgia,serif" text-anchor="middle">LOCKED</text>
+
+        <rect x="168" y="144" width="60" height="52" rx="4" fill="rgba(224,122,95,0.12)" stroke="#e07a5f" stroke-width="1.2"/>
+        <text x="198" y="174" fill="#e07a5f" font-size="12" font-family="Courier New,monospace" text-anchor="middle">r₃₃</text>
+        <text x="198" y="188" fill="#e07a5f" font-size="9" font-family="Georgia,serif" text-anchor="middle">LOCKED</text>
+      </g>
+
+      <!-- annotation panel -->
+      <g transform="translate(330,40)">
+        <rect width="210" height="210" rx="8" fill="rgba(65,90,119,0.06)" stroke="#415a77" stroke-width="1.2"/>
+        <text x="12" y="28" fill="#1a4da2" font-size="11" font-family="Georgia,serif" font-weight="700">3 FREE parameters</text>
+        <text x="12" y="44" fill="#415a77" font-size="10" font-family="Georgia,serif">→ yaw, pitch, roll</text>
+        <text x="12" y="60" fill="#415a77" font-size="10" font-family="Georgia,serif">→ row 1 only (first 3 cells)</text>
+
+        <line x1="12" y1="74" x2="196" y2="74" stroke="#ddd" stroke-width="1"/>
+
+        <text x="12" y="92" fill="#e07a5f" font-size="11" font-family="Georgia,serif" font-weight="700">6 LOCKED by constraints</text>
+        <text x="12" y="110" fill="#415a77" font-size="10" font-family="Georgia,serif">‖col₁‖ = 1  (unit length)</text>
+        <text x="12" y="126" fill="#415a77" font-size="10" font-family="Georgia,serif">‖col₂‖ = 1  (unit length)</text>
+        <text x="12" y="142" fill="#415a77" font-size="10" font-family="Georgia,serif">‖col₃‖ = 1  (unit length)</text>
+        <text x="12" y="158" fill="#415a77" font-size="10" font-family="Georgia,serif">col₁ · col₂ = 0 (ortho)</text>
+        <text x="12" y="174" fill="#415a77" font-size="10" font-family="Georgia,serif">col₁ · col₃ = 0 (ortho)</text>
+        <text x="12" y="190" fill="#415a77" font-size="10" font-family="Georgia,serif">col₂ · col₃ = 0 (ortho)</text>
+        <text x="12" y="206" fill="#81b29a" font-size="10" font-family="Georgia,serif">+ det(R) = +1</text>
+      </g>
+    </svg>`
+  }
+};
+
+function openModal(key) {
+  const d = cards[key];
+  document.getElementById('modalTag').textContent = d.tag;
+  document.getElementById('modalTag').style.background = d.tagBg;
+  document.getElementById('modalBar').style.background = d.barColor;
+  document.getElementById('modalTitle').textContent = d.title;
+  document.getElementById('modalTitle').style.color = d.barColor;
+  document.getElementById('modalDesc').textContent = d.desc;
+  document.getElementById('modalSvg').innerHTML = d.svg;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal(e, force) {
+  if (force || e.target === document.getElementById('modalOverlay'))
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+// ─── Live Canvas DCM Visualiser ───────────────────────────────
+const canvas = document.getElementById('dcmCanvas');
+const ctx = canvas.getContext('2d');
+
+const W = canvas.width, H = canvas.height;
+const cx = W / 2, cy = H / 2;
+
+function toRad(d) { return d * Math.PI / 180; }
+
+function getRot(yaw, pitch, roll) {
+  const cy = Math.cos(yaw), sy = Math.sin(yaw);
+  const cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const cr = Math.cos(roll), sr = Math.sin(roll);
+  // 3-2-1: Rz(yaw) * Ry(pitch) * Rx(roll)
+  return [
+    [ cy*cp,  cy*sp*sr - sy*cr,  cy*sp*cr + sy*sr ],
+    [ sy*cp,  sy*sp*sr + cy*cr,  sy*sp*cr - cy*sr ],
+    [ -sp,    cp*sr,             cp*cr            ]
+  ];
+}
+
+function project(v) {
+  // simple isometric-style projection
+  const ISO_X = 0.7, ISO_Y = 0.4;
+  const px = (v[0] - v[1]) * ISO_X;
+  const py = (v[0] + v[1]) * ISO_Y - v[2];
+  return [px, py];
+}
+
+function drawArrow(from3, to3, color, label, dashed) {
+  const [fx, fy] = project(from3);
+  const [tx, ty] = project(to3);
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = dashed ? 1.2 : 2;
+  if (dashed) ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(cx + fx * 80, cy + fy * 80);
+  ctx.lineTo(cx + tx * 80, cy + ty * 80);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // arrowhead
+  const angle = Math.atan2(ty - fy, tx - fx);
+  const ex = cx + tx * 80, ey = cy + ty * 80;
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - 10 * Math.cos(angle - 0.4), ey - 10 * Math.sin(angle - 0.4));
+  ctx.lineTo(ex - 10 * Math.cos(angle + 0.4), ey - 10 * Math.sin(angle + 0.4));
+  ctx.closePath();
+  ctx.fill();
+  if (label) {
+    ctx.font = 'bold 12px Georgia, serif';
+    ctx.fillText(label, ex + 6, ey + 4);
+  }
+  ctx.restore();
+}
+
+function fmtCell(v) { return v.toFixed(3); }
+
+function cellClass(v) {
+  if (Math.abs(v) < 0.01) return 'nearzero';
+  return v > 0 ? 'pos' : 'neg';
+}
+
+function updateMatrix(R) {
+  const rows = document.getElementById('matrixRows');
+  rows.innerHTML = R.map(row =>
+    `<div class="mrow">${row.map(v =>
+      `<span class="mcell ${cellClass(v)}">${fmtCell(v)}</span>`
+    ).join('')}</div>`
+  ).join('');
+}
+
+function checkOrtho(R) {
+  // RᵀR - compute off-diag sum
+  let err = 0;
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      let dot = 0;
+      for (let k = 0; k < 3; k++) dot += R[k][i] * R[k][j];
+      const ideal = (i === j) ? 1 : 0;
+      err += Math.abs(dot - ideal);
+    }
+  }
+  const badge = document.getElementById('normBadge');
+  if (err < 0.01) {
+    badge.textContent = '✓ Orthogonal';
+    badge.className = 'norm-badge norm-ok';
+  } else {
+    badge.textContent = `⚠ Drift: ${err.toFixed(4)}`;
+    badge.className = 'norm-badge norm-drift';
+  }
+}
+
+function draw() {
+  const yaw   = toRad(parseFloat(document.getElementById('yawSlider').value));
+  const pitch = toRad(parseFloat(document.getElementById('pitchSlider').value));
+  const roll  = toRad(parseFloat(document.getElementById('rollSlider').value));
+
+  document.getElementById('yawVal').textContent   = Math.round(yaw   * 180 / Math.PI) + '°';
+  document.getElementById('pitchVal').textContent = Math.round(pitch * 180 / Math.PI) + '°';
+  document.getElementById('rollVal').textContent  = Math.round(roll  * 180 / Math.PI) + '°';
+
+  const R = getRot(yaw, pitch, roll);
+  updateMatrix(R);
+  checkOrtho(R);
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#f7f8fa';
+  ctx.fillRect(0, 0, W, H);
+
+  // Reference frame (fixed, dashed, grey)
+  drawArrow([0,0,0],[1,0,0], '#aaa', 'Xᵣ', true);
+  drawArrow([0,0,0],[0,1,0], '#aaa', 'Yᵣ', true);
+  drawArrow([0,0,0],[0,0,1], '#aaa', 'Zᵣ', true);
+
+  // Body frame (rotated, solid, coloured)
+  // columns of R are body axes in reference coords
+  drawArrow([0,0,0], [R[0][0], R[1][0], R[2][0]], '#e07a5f', 'x_b', false);
+  drawArrow([0,0,0], [R[0][1], R[1][1], R[2][1]], '#81b29a', 'y_b', false);
+  drawArrow([0,0,0], [R[0][2], R[1][2], R[2][2]], '#1a4da2', 'z_b', false);
+
+  // Legend
+  ctx.font = '10px Georgia, serif';
+  ctx.fillStyle = '#999'; ctx.fillText('— Reference (fixed)', 12, 16);
+  ctx.fillStyle = '#e07a5f'; ctx.fillText('— x_b (body col 1)', 12, 30);
+  ctx.fillStyle = '#81b29a'; ctx.fillText('— y_b (body col 2)', 12, 44);
+  ctx.fillStyle = '#1a4da2'; ctx.fillText('— z_b (body col 3)', 12, 58);
+}
+
+['yawSlider','pitchSlider','rollSlider'].forEach(id => {
+  document.getElementById(id).addEventListener('input', draw);
+});
+
+draw();
+</script>
+</body>
+</html>
